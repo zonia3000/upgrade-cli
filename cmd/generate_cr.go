@@ -10,13 +10,13 @@ import (
 )
 
 const (
-	fileFlag    = "file"
+	outputFlag  = "output"
 	versionFlag = "version"
 	latestFlag  = "latest"
 )
 
 var generateCRCmd = &cobra.Command{
-	Use:   "generate-cr",
+	Use:   "generate",
 	Short: "Generate EntandoAppV2 CR file",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		latest, _ := cmd.Flags().GetBool(latestFlag)
@@ -35,7 +35,7 @@ var generateCRCmd = &cobra.Command{
 			version, _ = cmd.Flags().GetString(versionFlag)
 		}
 
-		file, _ := cmd.Flags().GetString(fileFlag)
+		file, _ := cmd.Flags().GetString(outputFlag)
 
 		entandoAppV2 := v1alpha1.EntandoAppV2{}
 		entandoAppV2.Spec.Version = version
@@ -87,8 +87,7 @@ func parseComponentFlag(cmd *cobra.Command, componentFlag string, imageOverride 
 func init() {
 	rootCmd.AddCommand(generateCRCmd)
 
-	generateCRCmd.Flags().StringP(fileFlag, "f", "", "path to CR file")
-	generateCRCmd.MarkFlagRequired(fileFlag)
+	generateCRCmd.Flags().StringP(outputFlag, "o", "", "path to CR file")
 
 	generateCRCmd.Flags().StringP(versionFlag, "v", "", "Entando version")
 	generateCRCmd.Flags().Bool(latestFlag, false, "Automatically select the latest version from entando-releases repository")

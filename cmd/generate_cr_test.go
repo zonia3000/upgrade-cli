@@ -12,7 +12,7 @@ func TestSimpleCRGenerated(t *testing.T) {
 
 	defer os.Remove(testFile)
 
-	rootCmd.SetArgs([]string{"generate-cr", "-f", testFile, "-v", "v7.1.0"})
+	rootCmd.SetArgs([]string{"generate", "-o", testFile, "-v", "v7.1.0"})
 
 	err := rootCmd.Execute()
 
@@ -39,7 +39,7 @@ func TestSimpleCRGenerated(t *testing.T) {
 }
 
 func TestInvalidImageOverrideFormat(t *testing.T) {
-	rootCmd.SetArgs([]string{"generate-cr", "-f", testFile, "-v", "v7.1.0", "--de-app", "foo:bar:foo"})
+	rootCmd.SetArgs([]string{"generate", "-o", testFile, "-v", "v7.1.0", "--de-app", "foo:bar:foo"})
 
 	err := rootCmd.Execute()
 

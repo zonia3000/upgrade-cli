@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/entgigi/upgrade-operator.git/api/v1alpha1"
@@ -22,14 +23,19 @@ func GenerateCustomResource(fileName string, entandoAppV2 *v1alpha1.EntandoAppV2
 
 	yamlPrinter := printers.YAMLPrinter{}
 
-	crFile, err := os.Create(fileName)
-	if err != nil {
-		return fmt.Errorf("unable to create file %s. %s", fileName, err.Error())
+	var writer io.Writer
+	if fileName == "" {
+		writer = os.Stdout
+	} else {
+		file, err := os.Create(fileName)
+		if err != nil {
+			return fmt.Errorf("unable to create file %s. %s", fileName, err.Error())
+		}
+		defer file.Close()
+		writer = file
 	}
 
-	defer crFile.Close()
-
-	err = yamlPrinter.PrintObj(entandoAppV2, crFile)
+	err := yamlPrinter.PrintObj(entandoAppV2, writer)
 	if err != nil {
 		return fmt.Errorf("unable to generate EntandoAppV2 manifest. %s", err.Error())
 	}
