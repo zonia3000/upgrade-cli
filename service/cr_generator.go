@@ -14,17 +14,11 @@ const (
 	kind           = "EntandoAppV2"
 )
 
-func GenerateCustomResource(fileName string, version string, imagesOverride map[string]string) error {
-	entandoAppV2 := v1alpha1.EntandoAppV2{}
+func GenerateCustomResource(fileName string, entandoAppV2 *v1alpha1.EntandoAppV2) error {
 
 	entandoAppV2.APIVersion = apiVersion
 	entandoAppV2.Kind = kind
 	entandoAppV2.Name = defaultAppName
-	entandoAppV2.Spec.Version = version
-
-	if len(imagesOverride) > 0 {
-		entandoAppV2.Spec.ImagesOverride = imagesOverride
-	}
 
 	yamlPrinter := printers.YAMLPrinter{}
 
@@ -35,7 +29,7 @@ func GenerateCustomResource(fileName string, version string, imagesOverride map[
 
 	defer crFile.Close()
 
-	err = yamlPrinter.PrintObj(&entandoAppV2, crFile)
+	err = yamlPrinter.PrintObj(entandoAppV2, crFile)
 	if err != nil {
 		return fmt.Errorf("unable to generate EntandoAppV2 manifest. %s", err.Error())
 	}

@@ -39,11 +39,11 @@ func TestSimpleCRGenerated(t *testing.T) {
 }
 
 func TestInvalidImageOverrideFormat(t *testing.T) {
-	rootCmd.SetArgs([]string{"generate-cr", "-f", testFile, "-v", "v7.1.0", "-i", "foo"})
+	rootCmd.SetArgs([]string{"generate-cr", "-f", testFile, "-v", "v7.1.0", "--de-app", "foo:bar:foo"})
 
 	err := rootCmd.Execute()
 
-	expectedErrorMessage := "invalid format for image override flag 'foo'. It should be <component-name>=<image>:<tag>"
+	expectedErrorMessage := "invalid format for image override flag 'foo:bar:foo'. It should be <image>:<tag> or <tag>"
 
 	if err == nil {
 		t.Fatalf("an error was expected")

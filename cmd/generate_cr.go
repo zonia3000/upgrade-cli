@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"upgrade-cli/service"
 
+	"github.com/entgigi/upgrade-operator.git/api/v1alpha1"
 	"github.com/spf13/cobra"
 )
 
@@ -12,7 +13,6 @@ const (
 	fileFlag    = "file"
 	versionFlag = "version"
 	latestFlag  = "latest"
-	imageFlag   = "image"
 )
 
 var generateCRCmd = &cobra.Command{
@@ -37,39 +37,51 @@ var generateCRCmd = &cobra.Command{
 
 		file, _ := cmd.Flags().GetString(fileFlag)
 
-		imagesOverrideFlags, _ := cmd.Flags().GetStringArray(imageFlag)
+		entandoAppV2 := v1alpha1.EntandoAppV2{}
+		entandoAppV2.Spec.Version = version
 
-		imagesOverride, err := parseImagesOverride(imagesOverrideFlags)
+		err := parseComponentFlag(cmd, "de-app", &entandoAppV2.Spec.DeApp.ImageOverride)
+		if err != nil {
+			return err
+		}
+		err = parseComponentFlag(cmd, "app-builder", &entandoAppV2.Spec.AppBuilder.ImageOverride)
+		if err != nil {
+			return err
+		}
+		err = parseComponentFlag(cmd, "component-manager", &entandoAppV2.Spec.ComponentManager.ImageOverride)
+		if err != nil {
+			return err
+		}
+		err = parseComponentFlag(cmd, "keycloak", &entandoAppV2.Spec.Keycloak.ImageOverride)
 		if err != nil {
 			return err
 		}
 
-		err = service.AdaptImagesOverride(imagesOverride)
+		err = service.AdaptImagesOverride(&entandoAppV2)
 		if err != nil {
 			return err
 		}
 
-		service.GenerateCustomResource(file, version, imagesOverride)
+		service.GenerateCustomResource(file, &entandoAppV2)
 
 		return nil
 	},
 }
 
-func parseImagesOverride(imagesOverrideFlags []string) (map[string]string, error) {
-	imagesOverride := make(map[string]string)
-	if len(imagesOverrideFlags) > 0 {
-		for _, imageOverrideFlag := range imagesOverrideFlags {
-			re := regexp.MustCompile(`^([\w-]+)=([\w-\/\.@]+:[\w-\.]+)$`)
-			match := re.FindStringSubmatch(imageOverrideFlag)
+func parseComponentFlag(cmd *cobra.Command, componentFlag string, imageOverride *string) error {
+	componentImage, _ := cmd.Flags().GetString(componentFlag)
 
-			if len(match) != 3 {
-				return nil, fmt.Errorf("invalid format for image override flag '%s'. It should be <component-name>=<image>:<tag>", imageOverrideFlag)
-			}
+	if componentImage != "" {
+		re := regexp.MustCompile(`^[\w-\/\.@]*:?[\w-\.]+$`)
 
-			imagesOverride[match[1]] = match[2]
+		if !re.MatchString(componentImage) {
+			return fmt.Errorf("invalid format for image override flag '%s'. It should be <image>:<tag> or <tag>", componentImage)
 		}
+
+		*imageOverride = componentImage
 	}
-	return imagesOverride, nil
+
+	return nil
 }
 
 func init() {
@@ -82,5 +94,12 @@ func init() {
 	generateCRCmd.Flags().Bool(latestFlag, false, "Automatically select the latest version from entando-releases repository")
 	generateCRCmd.MarkFlagsMutuallyExclusive(versionFlag, latestFlag)
 
-	generateCRCmd.Flags().StringArrayP(imageFlag, "i", []string{}, "Image override for a specific component using format <component-name>=<image>:<tag>")
+	addComponentFlag("de-app", "DeApp")
+	addComponentFlag("app-builder", "AppBuilder")
+	addComponentFlag("component-manager", "ComponentManager")
+	addComponentFlag("keycloak", "Keycloak")
+}
+
+func addComponentFlag(componentFlag, componentName string) {
+	generateCRCmd.Flags().String(componentFlag, "", "Image override for "+componentName)
 }

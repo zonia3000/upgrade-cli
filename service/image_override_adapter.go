@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/entgigi/upgrade-operator.git/api/v1alpha1"
 	"github.com/google/go-containerregistry/pkg/crane"
 )
 
@@ -12,34 +13,53 @@ const defaultRegistry = "registry.hub.docker.com"
 
 var craneDigest = crane.Digest
 
-func AdaptImagesOverride(imagesOverride map[string]string) error {
-	addMissingRegistry(imagesOverride)
-	return replaceTagsWithDigests(imagesOverride)
+// Convert the format of the images provided by the user to full URL format
+func AdaptImagesOverride(entandoAppV2 *v1alpha1.EntandoAppV2) error {
+
+	err := adaptImageOverride(&entandoAppV2.Spec.AppBuilder.ImageOverride)
+	if err != nil {
+		return err
+	}
+	err = adaptImageOverride(&entandoAppV2.Spec.DeApp.ImageOverride)
+	if err != nil {
+		return err
+	}
+	err = adaptImageOverride(&entandoAppV2.Spec.ComponentManager.ImageOverride)
+	if err != nil {
+		return err
+	}
+	err = adaptImageOverride(&entandoAppV2.Spec.Keycloak.ImageOverride)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func addMissingRegistry(imagesOverride map[string]string) {
+func adaptImageOverride(imageOverride *string) error {
+	if *imageOverride != "" {
+		addMissingRegistry(imageOverride)
+		return replaceTagsWithDigests(imageOverride)
+	}
+	return nil
+}
 
-	for key, image := range imagesOverride {
-		re := regexp.MustCompile(`^[\w-\.]+\.[\w-\.]+\/[\w-\/@\.:]+$`)
-		if !re.MatchString(image) {
-			imagesOverride[key] = defaultRegistry + "/" + image
-		}
+func addMissingRegistry(imageOverride *string) {
+	re := regexp.MustCompile(`^[\w-\.]+\.[\w-\.]+\/[\w-\/@\.:]+$`)
+	if !re.MatchString(*imageOverride) {
+		*imageOverride = defaultRegistry + "/" + *imageOverride
 	}
 }
 
-func replaceTagsWithDigests(imagesOverride map[string]string) error {
+func replaceTagsWithDigests(imageOverride *string) error {
+	if !strings.Contains(*imageOverride, "@sha256:") {
+		digest, err := craneDigest(*imageOverride)
 
-	for key, image := range imagesOverride {
-		if !strings.Contains(image, "@sha256:") {
-			digest, err := craneDigest(image)
-
-			if err != nil {
-				return fmt.Errorf("unable to retrieve digest for image %s.\n%s", image, err.Error())
-			}
-
-			imagesOverride[key] = strings.Split(image, ":")[0] + "@" + digest
+		if err != nil {
+			return fmt.Errorf("unable to retrieve digest for image %s.\n%s", *imageOverride, err.Error())
 		}
-	}
 
+		*imageOverride = strings.Split(*imageOverride, ":")[0] + "@" + digest
+	}
 	return nil
 }
