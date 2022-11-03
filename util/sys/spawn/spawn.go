@@ -78,7 +78,7 @@ func Spawn(gocmd **exec.Cmd, baseCmd string, args []interface{}, env Environ, op
 	}
 
 	// WAIT FOR PROCESS TO COMPLETE
-	_ = (*gocmd).Wait()
+	err = (*gocmd).Wait()
 
 	return Res{string(capturedStdout), string(capturedStderr)}, err
 }

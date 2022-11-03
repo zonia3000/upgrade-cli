@@ -37,15 +37,23 @@ func CreateEntandoApp(fileName string, force bool) error {
 
 	args = append(args, kubectlCmd, "-f", fileName)
 
-	_, err = spawn.Spawn(nil,
+	output, err := spawn.Spawn(nil,
 		*baseCmd,
 		args,
 		spawn.Environ{},
 		spawn.Options{
 			WithSudo:      false,
 			CaptureStdout: true,
+			CaptureStderr: true,
 		},
 	)
+
+	if err != nil && len(output.Stderr) > 0 {
+		if !force && strings.Contains(output.Stderr, "AlreadyExists") {
+			return fmt.Errorf("resource already exists. You can overwrite it using the --force flag")
+		}
+		return fmt.Errorf("error creating the resource: %s", output.Stderr)
+	}
 
 	return err
 }
