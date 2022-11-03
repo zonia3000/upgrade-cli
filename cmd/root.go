@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strings"
+	flag "upgrade-cli/flag"
 	"upgrade-cli/service"
 
 	"github.com/entgigi/upgrade-operator.git/api/v1alpha1"
@@ -11,8 +13,10 @@ import (
 )
 
 const (
-	versionFlag = "version"
-	latestFlag  = "latest"
+	versionFlag          = "version"
+	latestFlag           = "latest"
+	installationTypeFlag = "installationType"
+	olmFlag              = "olm"
 )
 
 var componentFlags = map[string]string{
@@ -43,6 +47,14 @@ func init() {
 	rootCmd.PersistentFlags().Bool(latestFlag, false, "Automatically select the latest version from entando-releases repository")
 	rootCmd.MarkFlagsMutuallyExclusive(versionFlag, latestFlag)
 
+	installationTypeFlagValue := flag.GetInstallationTypeFlag()
+	installationTypeFlagUsage := "Set specific images for DeApp or Keycloak. Possible values: " + strings.Join(flag.GetInstallationTypeValues(), ", ")
+	rootCmd.PersistentFlags().VarP(installationTypeFlagValue, installationTypeFlag, "t", installationTypeFlagUsage)
+
+	olmFlagValue := flag.GetBoolOrAutoFlag()
+	olmFlagUsage := "Generate CR for an OLM installation. Possible values: " + strings.Join(flag.GetBoolOrAutoValues(), ", ")
+	rootCmd.PersistentFlags().Var(olmFlagValue, olmFlag, olmFlagUsage)
+
 	// Global component flags
 	for componentFlag, componentName := range componentFlags {
 		rootCmd.PersistentFlags().String(componentFlag, "", "Image override for "+componentName)
@@ -63,27 +75,45 @@ func ParseEntandoAppFromCmd(cmd *cobra.Command) (*v1alpha1.EntandoAppV2, error) 
 
 	err := parseComponentFlag(cmd, "image-de-app", &entandoApp.Spec.DeApp.ImageOverride)
 	if err != nil {
-		return &entandoApp, err
+		return nil, err
 	}
 	err = parseComponentFlag(cmd, "image-app-builder", &entandoApp.Spec.AppBuilder.ImageOverride)
 	if err != nil {
-		return &entandoApp, err
+		return nil, err
 	}
 	err = parseComponentFlag(cmd, "image-component-manager", &entandoApp.Spec.ComponentManager.ImageOverride)
 	if err != nil {
-		return &entandoApp, err
+		return nil, err
 	}
 	err = parseComponentFlag(cmd, "image-keycloak", &entandoApp.Spec.Keycloak.ImageOverride)
 	if err != nil {
-		return &entandoApp, err
+		return nil, err
 	}
 
-	err = service.AdaptImagesOverride(&entandoApp)
+	installationType, _ := cmd.Flags().GetString(installationTypeFlag)
+
+	olmFlag, _ := cmd.Flags().GetString(olmFlag)
+	olm, err := isOlm(olmFlag)
 	if err != nil {
-		return &entandoApp, err
+		return nil, err
+	}
+
+	err = service.AdaptImagesOverride(&entandoApp, flag.InstallationType(installationType), olm)
+	if err != nil {
+		return nil, err
 	}
 
 	return &entandoApp, nil
+}
+
+func isOlm(olmFlagValue string) (bool, error) {
+	switch flag.BoolOrAutoType(olmFlagValue) {
+	case flag.True:
+		return true, nil
+	case flag.False:
+		return false, nil
+	}
+	return false, fmt.Errorf("automatic detection of OLM not implemented yet")
 }
 
 func parseComponentFlag(cmd *cobra.Command, componentFlag string, imageOverride *string) error {

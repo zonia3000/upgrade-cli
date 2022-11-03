@@ -33,6 +33,8 @@ var upgradeCmd = &cobra.Command{
 		}
 		cmd.MarkFlagsMutuallyExclusive(fileFlag, versionFlag)
 		cmd.MarkFlagsMutuallyExclusive(fileFlag, latestFlag)
+		cmd.MarkFlagsMutuallyExclusive(fileFlag, olmFlag)
+		cmd.MarkFlagsMutuallyExclusive(fileFlag, installationTypeFlag)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Prevent showing usage message when error happens in RunE func
