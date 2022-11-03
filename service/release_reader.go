@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 )
 
 const tagsUrl = "https://api.github.com/repos/entando/entando-releases/tags"
@@ -36,5 +37,8 @@ func GetLatestVersion() string {
 		os.Exit(1)
 	}
 
-	return tags[0].Name
+	tag := tags[0].Name
+	tag = strings.TrimPrefix(tag, "v")
+
+	return tag
 }
