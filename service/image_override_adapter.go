@@ -5,7 +5,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
-	flag "upgrade-cli/flag"
+	imagesettype "upgrade-cli/flag/image_set_type"
 
 	"github.com/entgigi/upgrade-operator.git/api/v1alpha1"
 	"github.com/google/go-containerregistry/pkg/crane"
@@ -28,10 +28,10 @@ const (
 
 // AdaptImagesOverride converts the format of the images provided by the user to full URL format
 // Returns a bool that is true in case of errors in digests retrieval. This will be used to add a comment on the YAML file
-func AdaptImagesOverride(entandoAppV2 *v1alpha1.EntandoAppV2, installationType flag.InstallationType, olm bool) bool {
+func AdaptImagesOverride(entandoAppV2 *v1alpha1.EntandoAppV2, imageSetType imagesettype.ImageSetType, olm bool) bool {
 
-	defaultDeAppImage := getDefaultDeAppImage(installationType)
-	defaultKeycloakImage := getDefaultKeycloakImage(installationType)
+	defaultDeAppImage := getDefaultDeAppImage(imageSetType)
+	defaultKeycloakImage := getDefaultKeycloakImage(imageSetType)
 
 	digestErrors := make(map[string]error)
 
@@ -40,21 +40,21 @@ func AdaptImagesOverride(entandoAppV2 *v1alpha1.EntandoAppV2, installationType f
 	adaptImageOverride(&entandoAppV2.Spec.ComponentManager.ImageOverride, defaultComponentManagerImage, olm, digestErrors)
 	adaptImageOverride(&entandoAppV2.Spec.Keycloak.ImageOverride, defaultKeycloakImage, olm, digestErrors)
 
-	checkInstallationTypeImagesMismatch(entandoAppV2.Spec.DeApp.ImageOverride, defaultDeAppImage, installationType)
-	checkInstallationTypeImagesMismatch(entandoAppV2.Spec.Keycloak.ImageOverride, defaultKeycloakImage, installationType)
+	checkInstallationTypeImagesMismatch(entandoAppV2.Spec.DeApp.ImageOverride, defaultDeAppImage, imageSetType)
+	checkInstallationTypeImagesMismatch(entandoAppV2.Spec.Keycloak.ImageOverride, defaultKeycloakImage, imageSetType)
 
 	return checkDigestErrors(digestErrors)
 }
 
-func getDefaultDeAppImage(installationType flag.InstallationType) string {
-	if installationType == flag.RedhatCertified {
+func getDefaultDeAppImage(imageSetType imagesettype.ImageSetType) string {
+	if imageSetType == imagesettype.RedhatCertified {
 		return defaultDeAppEapImage
 	}
 	return defaultDeAppWildflyImage
 }
 
-func getDefaultKeycloakImage(installationType flag.InstallationType) string {
-	if installationType == flag.RedhatCertified {
+func getDefaultKeycloakImage(imageSetType imagesettype.ImageSetType) string {
+	if imageSetType == imagesettype.RedhatCertified {
 		return defaultRedHatSsoImage
 	}
 	return defaultKeycloakImage
@@ -115,7 +115,7 @@ func checkDigestErrors(digestErrors map[string]error) bool {
 }
 
 // in case of inconsistencies between the provided images and the selected installation type the user is warned
-func checkInstallationTypeImagesMismatch(image, expectedRepo string, installationType flag.InstallationType) {
+func checkInstallationTypeImagesMismatch(image, expectedRepo string, imageSetType imagesettype.ImageSetType) {
 
 	// the check is performed only when using official Entando images
 	if strings.HasPrefix(image, defaultRegistry+"/"+defaultOrganization+"/") {
@@ -124,7 +124,7 @@ func checkInstallationTypeImagesMismatch(image, expectedRepo string, installatio
 		if len(matches) == 2 {
 			providedRepo := matches[1]
 			if providedRepo != expectedRepo {
-				fmt.Fprintf(os.Stderr, "WARNING: installationType is set to %s but the repository %s was provided. Expected repository should be %s\n", installationType, providedRepo, expectedRepo)
+				fmt.Fprintf(os.Stderr, "WARNING: image-set-type is set to %s but the repository %s was provided. Expected repository should be %s\n", imageSetType, providedRepo, expectedRepo)
 			}
 		}
 	}

@@ -13,7 +13,7 @@ const (
 	defaultResourceName = "my-app"
 	apiVersion          = "app.entando.org/v1alpha1"
 	kind                = "EntandoAppV2"
-	EntandoAppNameEnv   = "ENTANDO_APPNAME"
+	EntandoAppNameEnv   = "ENTANDO_CLI_APPNAME"
 )
 
 // GenerateCustomResource writes the CR in YAML format to the specified file or to the stdout if the filename is an empty string

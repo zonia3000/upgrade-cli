@@ -5,7 +5,7 @@ import (
 	"os"
 	"path"
 	"time"
-	flag "upgrade-cli/flag"
+	imagesettype "upgrade-cli/flag/image_set_type"
 	"upgrade-cli/service"
 
 	"github.com/entgigi/upgrade-operator.git/api/v1alpha1"
@@ -35,8 +35,8 @@ var upgradeCmd = &cobra.Command{
 		}
 		cmd.MarkFlagsMutuallyExclusive(fileFlag, versionFlag)
 		cmd.MarkFlagsMutuallyExclusive(fileFlag, latestFlag)
-		cmd.MarkFlagsMutuallyExclusive(fileFlag, olmFlag)
-		cmd.MarkFlagsMutuallyExclusive(fileFlag, installationTypeFlag)
+		cmd.MarkFlagsMutuallyExclusive(fileFlag, operatorModeFlag)
+		cmd.MarkFlagsMutuallyExclusive(fileFlag, imageSetTypeFlag)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Prevent showing usage message when error happens in RunE func
@@ -59,15 +59,15 @@ var upgradeCmd = &cobra.Command{
 				return err
 			}
 
-			installationType, _ := cmd.Flags().GetString(installationTypeFlag)
+			imageSetType, _ := cmd.Flags().GetString(imageSetTypeFlag)
 
-			olmFlag, _ := cmd.Flags().GetString(olmFlag)
-			olm, err := isOlm(olmFlag)
+			operatorMode, _ := cmd.Flags().GetString(operatorModeFlag)
+			olm, err := isOlm(operatorMode)
 			if err != nil {
 				return err
 			}
 
-			needsFix := service.AdaptImagesOverride(entandoApp, flag.InstallationType(installationType), olm)
+			needsFix := service.AdaptImagesOverride(entandoApp, imagesettype.ImageSetType(imageSetType), olm)
 
 			err = service.GenerateCustomResource(fileName, entandoApp, needsFix)
 			if err != nil {

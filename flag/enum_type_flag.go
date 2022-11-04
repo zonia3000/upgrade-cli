@@ -5,25 +5,25 @@ import (
 	"strings"
 )
 
-type enumFlag struct {
+type EnumFlag struct {
 	Allowed []string
 	Value   string
 }
 
 // Provides the logic for handling a flag that can only assume a value in a defined set of values
 // See https://github.com/spf13/pflag/issues/236
-func NewEnumFlag(allowed []string, defaultValue string) *enumFlag {
-	return &enumFlag{
+func NewEnumFlag(allowed []string, defaultValue string) *EnumFlag {
+	return &EnumFlag{
 		Allowed: allowed,
 		Value:   defaultValue,
 	}
 }
 
-func (a enumFlag) String() string {
+func (a EnumFlag) String() string {
 	return a.Value
 }
 
-func (a *enumFlag) Set(p string) error {
+func (a *EnumFlag) Set(p string) error {
 	isIncluded := func(opts []string, val string) bool {
 		for _, opt := range opts {
 			if val == opt {
@@ -39,6 +39,6 @@ func (a *enumFlag) Set(p string) error {
 	return nil
 }
 
-func (a *enumFlag) Type() string {
+func (a *EnumFlag) Type() string {
 	return "string"
 }

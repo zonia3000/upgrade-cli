@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	kubectlBaseCommandEnv  = "ENTANDO_KUBECTL_BASE_COMMAND"
+	kubectlBaseCommandEnv  = "ENTANDO_CLI_KUBECTL_COMMAND"
 	entandoAppResourceName = "EntandoAppV2"
 )
 

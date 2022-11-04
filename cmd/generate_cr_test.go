@@ -17,7 +17,7 @@ func TestGenerateSimpleCR(t *testing.T) {
 	testFile, _ := os.CreateTemp("", "generate-cr-test")
 	defer os.Remove(testFile.Name())
 
-	rootCmd.SetArgs([]string{"generate", "-o", testFile.Name(), "-v", "7.1.0", "--olm", "false"})
+	rootCmd.SetArgs([]string{"generate", "-o", testFile.Name(), "-v", "7.1.0", "--operator-mode", "Plain"})
 
 	err := rootCmd.Execute()
 
@@ -56,7 +56,7 @@ func TestGenerateOlmCRWithPlaceholders(t *testing.T) {
 		}
 	}
 
-	rootCmd.SetArgs([]string{"generate", "-o", testFile.Name(), "-v", "v7.1.0", "--olm", "true",
+	rootCmd.SetArgs([]string{"generate", "-o", testFile.Name(), "-v", "v7.1.0", "--operator-mode", "OLM",
 		"--image-de-app", "7.1.0-fix1", "--image-app-builder", "invalid-tag"})
 
 	err := rootCmd.Execute()

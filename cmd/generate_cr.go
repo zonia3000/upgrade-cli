@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	flag "upgrade-cli/flag"
+	imagesettype "upgrade-cli/flag/image_set_type"
 	"upgrade-cli/service"
 
 	"github.com/spf13/cobra"
@@ -29,15 +29,15 @@ var generateCRCmd = &cobra.Command{
 			return err
 		}
 
-		installationType, _ := cmd.Flags().GetString(installationTypeFlag)
+		imageSetType, _ := cmd.Flags().GetString(imageSetTypeFlag)
 
-		olmFlag, _ := cmd.Flags().GetString(olmFlag)
-		olm, err := isOlm(olmFlag)
+		operatorMode, _ := cmd.Flags().GetString(operatorModeFlag)
+		olm, err := isOlm(operatorMode)
 		if err != nil {
 			return err
 		}
 
-		needsFix := service.AdaptImagesOverride(entandoApp, flag.InstallationType(installationType), olm)
+		needsFix := service.AdaptImagesOverride(entandoApp, imagesettype.ImageSetType(imageSetType), olm)
 
 		fileName, _ := cmd.Flags().GetString(outputFlag)
 		return service.GenerateCustomResource(fileName, entandoApp, needsFix)

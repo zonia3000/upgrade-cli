@@ -5,7 +5,8 @@ import (
 	"os"
 	"regexp"
 	"strings"
-	flag "upgrade-cli/flag"
+	imagesettype "upgrade-cli/flag/image_set_type"
+	operatormode "upgrade-cli/flag/operator_mode"
 	"upgrade-cli/service"
 
 	"github.com/entgigi/upgrade-operator.git/api/v1alpha1"
@@ -13,10 +14,10 @@ import (
 )
 
 const (
-	versionFlag          = "version"
-	latestFlag           = "latest"
-	installationTypeFlag = "installationType"
-	olmFlag              = "olm"
+	versionFlag      = "version"
+	latestFlag       = "latest-version"
+	imageSetTypeFlag = "image-set-type"
+	operatorModeFlag = "operator-mode"
 )
 
 var componentFlags = map[string]string{
@@ -47,13 +48,13 @@ func init() {
 	rootCmd.PersistentFlags().Bool(latestFlag, false, "Automatically select the latest version from entando-releases repository")
 	rootCmd.MarkFlagsMutuallyExclusive(versionFlag, latestFlag)
 
-	installationTypeFlagValue := flag.GetInstallationTypeFlag()
-	installationTypeFlagUsage := "Set specific images for DeApp or Keycloak. Possible values: " + strings.Join(flag.GetInstallationTypeValues(), ", ")
-	rootCmd.PersistentFlags().VarP(installationTypeFlagValue, installationTypeFlag, "t", installationTypeFlagUsage)
+	imageSetTypeFlagValue := imagesettype.GetImageSetTypeFlag()
+	imageSetTypeFlagUsage := "Set specific images for DeApp or Keycloak. Possible values: " + strings.Join(imagesettype.GetImageSetTypeValues(), ", ")
+	rootCmd.PersistentFlags().VarP(imageSetTypeFlagValue, imageSetTypeFlag, "t", imageSetTypeFlagUsage)
 
-	olmFlagValue := flag.GetBoolOrAutoFlag()
-	olmFlagUsage := "Generate CR for an OLM installation. Possible values: " + strings.Join(flag.GetBoolOrAutoValues(), ", ")
-	rootCmd.PersistentFlags().Var(olmFlagValue, olmFlag, olmFlagUsage)
+	operatorModeFlagValue := operatormode.GetOperatorModeFlag()
+	operatorModeFlagUsage := "Generate CR for an OLM installation. Possible values: " + strings.Join(operatormode.GetOperatorModeValues(), ", ")
+	rootCmd.PersistentFlags().Var(operatorModeFlagValue, operatorModeFlag, operatorModeFlagUsage)
 
 	// Global component flags
 	for componentFlag, componentName := range componentFlags {
@@ -93,11 +94,11 @@ func ParseEntandoAppFromCmd(cmd *cobra.Command) (*v1alpha1.EntandoAppV2, error) 
 	return &entandoApp, nil
 }
 
-func isOlm(olmFlagValue string) (bool, error) {
-	switch flag.BoolOrAutoType(olmFlagValue) {
-	case flag.True:
+func isOlm(operatorModeFlagValue string) (bool, error) {
+	switch operatormode.OperatorMode(operatorModeFlagValue) {
+	case operatormode.OLM:
 		return true, nil
-	case flag.False:
+	case operatormode.Plain:
 		return false, nil
 	}
 	return false, fmt.Errorf("automatic detection of OLM not implemented yet")
