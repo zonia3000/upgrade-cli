@@ -76,7 +76,7 @@ func TestGenerateOlmCRWithPlaceholders(t *testing.T) {
 		t.Fatalf("Generated doesn't contain placeholders warning")
 	}
 
-	assertYamlField(t, fileContent, "imageOverride", "registry.hub.docker.com/entando/entando-de-app-wildfly@sha256:94af0fb4525")
+	assertYamlField(t, fileContent, "imageOverride", "registry.hub.docker.com/entando/entando-de-app-eap@sha256:94af0fb4525")
 	assertYamlField(t, fileContent, "imageOverride", "registry.hub.docker.com/entando/app-builder@###-FIXME-INSERT-SHA256-###")
 }
 

@@ -28,7 +28,9 @@ const (
 
 // AdaptImagesOverride converts the format of the images provided by the user to full URL format
 // Returns a bool that is true in case of errors in digests retrieval. This will be used to add a comment on the YAML file
-func AdaptImagesOverride(entandoAppV2 *v1alpha1.EntandoAppV2, imageSetType imagesettype.ImageSetType, olm bool) bool {
+func AdaptImagesOverride(entandoAppV2 *v1alpha1.EntandoAppV2, olm bool) bool {
+
+	imageSetType := imagesettype.ImageSetType(entandoAppV2.Spec.ImageSetType)
 
 	defaultDeAppImage := getDefaultDeAppImage(imageSetType)
 	defaultKeycloakImage := getDefaultKeycloakImage(imageSetType)

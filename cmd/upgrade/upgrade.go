@@ -7,7 +7,6 @@ import (
 	"time"
 	"upgrade-cli/cmd/generate"
 	"upgrade-cli/flag/component"
-	imagesettype "upgrade-cli/flag/image_set_type"
 	"upgrade-cli/service"
 
 	"github.com/entgigi/upgrade-operator.git/api/v1alpha1"
@@ -56,20 +55,12 @@ var UpgradeCmd = &cobra.Command{
 			fileName = file.Name()
 			defer os.Remove(fileName)
 
-			entandoApp, err := generate.ParseEntandoAppFromCmd(cmd)
+			entandoApp, olm, err := generate.ParseEntandoAppFromCmd(cmd)
 			if err != nil {
 				return err
 			}
 
-			imageSetType, _ := cmd.Flags().GetString(generate.ImageSetTypeFlag)
-
-			operatorMode, _ := cmd.Flags().GetString(generate.OperatorModeFlag)
-			olm, err := generate.IsOlm(operatorMode)
-			if err != nil {
-				return err
-			}
-
-			needsFix := service.AdaptImagesOverride(entandoApp, imagesettype.ImageSetType(imageSetType), olm)
+			needsFix := service.AdaptImagesOverride(entandoApp, olm)
 
 			err = service.GenerateCustomResource(fileName, entandoApp, needsFix)
 			if err != nil {

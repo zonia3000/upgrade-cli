@@ -22,8 +22,9 @@ func TestAdaptImagesOverrideOLM(t *testing.T) {
 	entandoAppV2.Spec.AppBuilder.ImageOverride = "entando/app-builder:7.1.1-ENG-4277-PR-1413"
 	entandoAppV2.Spec.DeApp.ImageOverride = "registry.hub.docker.com/entando/entando-de-app-eap:7.1.1-ENGPM-493-PR-440"
 	entandoAppV2.Spec.Keycloak.ImageOverride = "entando/entando-keycloak@sha256:d550b07f5dd6"
+	entandoAppV2.Spec.ImageSetType = string(imagesettype.RedhatCertified)
 
-	AdaptImagesOverride(&entandoAppV2, imagesettype.RedhatCertified, true)
+	AdaptImagesOverride(&entandoAppV2, true)
 
 	expectedAppBuilder := "registry.hub.docker.com/entando/app-builder@sha256:94af0fb4525"
 	expectedDeApp := "registry.hub.docker.com/entando/entando-de-app-eap@sha256:94af0fb4525"
@@ -47,8 +48,9 @@ func TestAdaptImagesOverrideNonOLM(t *testing.T) {
 	entandoAppV2.Spec.AppBuilder.ImageOverride = "entando/app-builder:7.1.1-ENG-4277-PR-1413"
 	entandoAppV2.Spec.DeApp.ImageOverride = "registry.hub.docker.com/entando/entando-de-app-eap:7.1.1-ENGPM-493-PR-440"
 	entandoAppV2.Spec.Keycloak.ImageOverride = "entando/entando-keycloak:7.1.1-ENGPM-493-PR-440"
+	entandoAppV2.Spec.ImageSetType = string(imagesettype.Community)
 
-	AdaptImagesOverride(&entandoAppV2, imagesettype.Community, false)
+	AdaptImagesOverride(&entandoAppV2, false)
 
 	expectedAppBuilder := "registry.hub.docker.com/entando/app-builder:7.1.1-ENG-4277-PR-1413"
 	expectedDeApp := "registry.hub.docker.com/entando/entando-de-app-eap:7.1.1-ENGPM-493-PR-440"
@@ -71,8 +73,9 @@ func TestAdaptImagesOverrideOnlyTags(t *testing.T) {
 
 	entandoAppV2.Spec.DeApp.ImageOverride = "7.1.1-ENGPM-493-PR-440"
 	entandoAppV2.Spec.Keycloak.ImageOverride = "7.1.1-ENGPM-493-PR-440"
+	entandoAppV2.Spec.ImageSetType = string(imagesettype.RedhatCertified)
 
-	AdaptImagesOverride(&entandoAppV2, imagesettype.RedhatCertified, false)
+	AdaptImagesOverride(&entandoAppV2, false)
 
 	expectedDeApp := "registry.hub.docker.com/entando/entando-de-app-eap:7.1.1-ENGPM-493-PR-440"
 	expectedKeycloak := "registry.hub.docker.com/entando/entando-redhat-sso:7.1.1-ENGPM-493-PR-440"
@@ -86,8 +89,9 @@ func TestAdaptImagesOverrideOnlyTags(t *testing.T) {
 
 	entandoAppV2.Spec.DeApp.ImageOverride = "7.1.1-ENGPM-493-PR-440"
 	entandoAppV2.Spec.Keycloak.ImageOverride = "7.1.1-ENGPM-493-PR-440"
+	entandoAppV2.Spec.ImageSetType = string(imagesettype.Community)
 
-	AdaptImagesOverride(&entandoAppV2, imagesettype.Community, false)
+	AdaptImagesOverride(&entandoAppV2, false)
 
 	expectedDeApp = "registry.hub.docker.com/entando/entando-de-app-wildfly:7.1.1-ENGPM-493-PR-440"
 	expectedKeycloak = "registry.hub.docker.com/entando/entando-keycloak:7.1.1-ENGPM-493-PR-440"

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	operatormode "upgrade-cli/flag/operator_mode"
 	"upgrade-cli/util/sys/spawn"
 
 	"github.com/entgigi/upgrade-operator.git/api/v1alpha1"
@@ -15,6 +16,7 @@ import (
 const (
 	kubectlBaseCommandEnv  = "ENTANDO_CLI_KUBECTL_COMMAND"
 	entandoAppResourceName = "EntandoAppV2"
+	operatorDeploymentType = "ENTANDO_K8S_OPERATOR_DEPLOYMENT_TYPE"
 )
 
 func CreateEntandoApp(fileName string, force bool) error {
@@ -80,6 +82,40 @@ func GetEntandoApp() (*v1alpha1.EntandoAppV2, error) {
 	}
 
 	return parseResource(output.Stdout)
+}
+
+func GetOperatorMode() (operatormode.OperatorMode, error) {
+	baseCmd, args, err := getKubectlBaseCommand()
+	if err != nil {
+		return operatormode.Auto, err
+	}
+
+	jsonPath := "jsonpath='{.spec.template.spec.containers[0].env[?(@.name == \"" + operatorDeploymentType + "\")].value}'"
+	args = append(args, "get", "deploy", "entando-operator", "-o", jsonPath)
+
+	output, err := spawn.Spawn(nil,
+		*baseCmd,
+		args,
+		spawn.Environ{},
+		spawn.Options{
+			WithSudo:      false,
+			CaptureStdout: true,
+		},
+	)
+	if err != nil {
+		return operatormode.Auto, fmt.Errorf("unable to retrieve the operator mode from the deployment: %s", err.Error())
+	}
+
+	parsedMode := strings.Trim(output.Stdout, "'")
+
+	switch parsedMode {
+	case "olm":
+		return operatormode.OLM, nil
+	case "helm":
+		return operatormode.Plain, nil
+	default:
+		return operatormode.Auto, fmt.Errorf("unable to retrieve the operator mode from the deployment.\nUnexpected value for %s: %s", operatorDeploymentType, parsedMode)
+	}
 }
 
 func parseResource(stdout string) (*v1alpha1.EntandoAppV2, error) {

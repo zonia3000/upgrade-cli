@@ -37,20 +37,12 @@ var GenerateCRCmd = &cobra.Command{
 		// Prevent showing usage message when error happens in RunE func
 		cmd.SilenceUsage = true
 
-		entandoApp, err := ParseEntandoAppFromCmd(cmd)
+		entandoApp, olm, err := ParseEntandoAppFromCmd(cmd)
 		if err != nil {
 			return err
 		}
 
-		imageSetType, _ := cmd.Flags().GetString(ImageSetTypeFlag)
-
-		operatorMode, _ := cmd.Flags().GetString(OperatorModeFlag)
-		olm, err := IsOlm(operatorMode)
-		if err != nil {
-			return err
-		}
-
-		needsFix := service.AdaptImagesOverride(entandoApp, imagesettype.ImageSetType(imageSetType), olm)
+		needsFix := service.AdaptImagesOverride(entandoApp, olm)
 
 		fileName, _ := cmd.Flags().GetString(outputFlag)
 		return service.GenerateCustomResource(fileName, entandoApp, needsFix)
@@ -63,7 +55,7 @@ func init() {
 	GenerateCRCmd.Flags().StringP(outputFlag, "o", "", "path to CR file")
 }
 
-func ParseEntandoAppFromCmd(cmd *cobra.Command) (*v1alpha1.EntandoAppV2, error) {
+func ParseEntandoAppFromCmd(cmd *cobra.Command) (*v1alpha1.EntandoAppV2, bool, error) {
 
 	var version string
 	if latest, _ := cmd.Flags().GetBool(LatestVersionFlag); latest {
@@ -72,27 +64,49 @@ func ParseEntandoAppFromCmd(cmd *cobra.Command) (*v1alpha1.EntandoAppV2, error) 
 		version, _ = cmd.Flags().GetString(VersionFlag)
 	}
 
+	olm, err := isOlm(cmd)
+	if err != nil {
+		return nil, false, err
+	}
+
+	imageSetType := getImageSetType(cmd, olm)
+
 	entandoApp := v1alpha1.EntandoAppV2{}
 	entandoApp.Spec.Version = version
+	entandoApp.Spec.ImageSetType = string(imageSetType)
 
 	for _, componentFlag := range component.ComponentFlags {
 		err := parseComponentFlag(cmd, componentFlag, &entandoApp)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 	}
 
-	return &entandoApp, nil
+	return &entandoApp, olm, nil
 }
 
-func IsOlm(operatorModeFlagValue string) (bool, error) {
-	switch operatormode.OperatorMode(operatorModeFlagValue) {
-	case operatormode.OLM:
-		return true, nil
-	case operatormode.Plain:
-		return false, nil
+func isOlm(cmd *cobra.Command) (bool, error) {
+	flagValue, _ := cmd.Flags().GetString(OperatorModeFlag)
+	if flagValue == string(operatormode.Auto) {
+		mode, err := service.GetOperatorMode()
+		if err != nil {
+			return false, err
+		}
+		return mode == operatormode.OLM, nil
 	}
-	return false, fmt.Errorf("automatic detection of OLM not implemented yet")
+	return flagValue == string(operatormode.OLM), nil
+}
+
+func getImageSetType(cmd *cobra.Command, olm bool) imagesettype.ImageSetType {
+	flagValue, _ := cmd.Flags().GetString(ImageSetTypeFlag)
+	if flagValue == string(imagesettype.Auto) {
+		if olm {
+			return imagesettype.RedhatCertified
+		} else {
+			return imagesettype.Community
+		}
+	}
+	return imagesettype.ImageSetType(flagValue)
 }
 
 func parseComponentFlag(cmd *cobra.Command, componentFlag component.ComponentFlag, entandoApp *v1alpha1.EntandoAppV2) error {
