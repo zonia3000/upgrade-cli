@@ -3,7 +3,9 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path"
 	"time"
+	flag "upgrade-cli/flag"
 	"upgrade-cli/service"
 
 	"github.com/entgigi/upgrade-operator.git/api/v1alpha1"
@@ -57,9 +59,26 @@ var upgradeCmd = &cobra.Command{
 				return err
 			}
 
-			err = service.GenerateCustomResource(fileName, entandoApp)
+			installationType, _ := cmd.Flags().GetString(installationTypeFlag)
+
+			olmFlag, _ := cmd.Flags().GetString(olmFlag)
+			olm, err := isOlm(olmFlag)
 			if err != nil {
 				return err
+			}
+
+			needsFix := service.AdaptImagesOverride(entandoApp, flag.InstallationType(installationType), olm)
+
+			err = service.GenerateCustomResource(fileName, entandoApp, needsFix)
+			if err != nil {
+				return err
+			}
+
+			if needsFix {
+				// Move temporary file to current directory
+				fileToFix := path.Base(fileName) + "-fixme.yaml"
+				os.Rename(fileName, fileToFix)
+				return fmt.Errorf("upgrade not applied because the generated CR file needs to be fixed. Please edit %s", fileToFix)
 			}
 		}
 

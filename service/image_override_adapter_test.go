@@ -10,10 +10,10 @@ import (
 
 func TestAdaptImagesOverrideOLM(t *testing.T) {
 
-	origDigest := craneDigest
-	defer func() { craneDigest = origDigest }()
+	origDigest := CraneDigest
+	defer func() { CraneDigest = origDigest }()
 
-	craneDigest = func(ref string, opt ...crane.Option) (string, error) {
+	CraneDigest = func(ref string, opt ...crane.Option) (string, error) {
 		return "sha256:94af0fb4525", nil
 	}
 

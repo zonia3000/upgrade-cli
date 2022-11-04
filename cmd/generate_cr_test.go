@@ -1,21 +1,23 @@
 package cmd
 
 import (
+	"errors"
 	"os"
 	"strings"
 	"testing"
 	"upgrade-cli/service"
+
+	"github.com/google/go-containerregistry/pkg/crane"
 )
 
-const testFile = "generate-cr-test.yml"
-
-func TestSimpleCRGenerated(t *testing.T) {
+func TestGenerateSimpleCR(t *testing.T) {
 
 	os.Setenv(service.EntandoAppNameEnv, "my-entando-app")
 
-	defer os.Remove(testFile)
+	testFile, _ := os.CreateTemp("", "generate-cr-test")
+	defer os.Remove(testFile.Name())
 
-	rootCmd.SetArgs([]string{"generate", "-o", testFile, "-v", "v7.1.0", "--olm", "false"})
+	rootCmd.SetArgs([]string{"generate", "-o", testFile.Name(), "-v", "7.1.0", "--olm", "false"})
 
 	err := rootCmd.Execute()
 
@@ -23,26 +25,69 @@ func TestSimpleCRGenerated(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 
-	bytes, err := os.ReadFile(testFile)
+	bytes, err := os.ReadFile(testFile.Name())
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	fileContent := string(bytes)
 
-	if !strings.Contains(fileContent, "apiVersion: app.entando.org/v1alpha1") {
-		t.Fatalf("Generated CR doesn't contain expected apiVersion\n%s", fileContent)
+	assertYamlField(t, fileContent, "apiVersion", "app.entando.org/v1alpha1")
+	assertYamlField(t, fileContent, "kind", "EntandoAppV2")
+	assertYamlField(t, fileContent, "version", "7.1.0")
+	assertYamlField(t, fileContent, "entandoAppName", "my-entando-app")
+}
+
+func TestGenerateOlmCRWithPlaceholders(t *testing.T) {
+
+	os.Setenv(service.EntandoAppNameEnv, "my-entando-app")
+
+	testFile, _ := os.CreateTemp("", "generate-cr-test")
+	defer os.Remove(testFile.Name())
+
+	origDigest := service.CraneDigest
+	defer func() { service.CraneDigest = origDigest }()
+
+	service.CraneDigest = func(ref string, opt ...crane.Option) (string, error) {
+		if strings.HasSuffix(ref, "invalid-tag") {
+			return "", errors.New("manifest unknown")
+		} else {
+			return "sha256:94af0fb4525", nil
+		}
 	}
-	if !strings.Contains(fileContent, "kind: EntandoAppV2") {
-		t.Fatalf("Generated CR doesn't contain expected kind\n%s", fileContent)
+
+	rootCmd.SetArgs([]string{"generate", "-o", testFile.Name(), "-v", "v7.1.0", "--olm", "true",
+		"--image-de-app", "7.1.0-fix1", "--image-app-builder", "invalid-tag"})
+
+	err := rootCmd.Execute()
+
+	if err != nil {
+		t.Fatalf(err.Error())
 	}
-	if !strings.Contains(fileContent, "version: v7.1.0") {
-		t.Fatalf("Generated CR doesn't contain expected version\n%s", fileContent)
+
+	bytes, err := os.ReadFile(testFile.Name())
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	fileContent := string(bytes)
+
+	if !strings.Contains(fileContent, "Please replace the placeholders") {
+		t.Fatalf("Generated doesn't contain placeholders warning")
+	}
+
+	assertYamlField(t, fileContent, "imageOverride", "registry.hub.docker.com/entando/entando-de-app-wildfly@sha256:94af0fb4525")
+	assertYamlField(t, fileContent, "imageOverride", "registry.hub.docker.com/entando/app-builder@###-FIXME-INSERT-SHA256-###")
+}
+
+func assertYamlField(t *testing.T, fileContent, key, expectedValue string) {
+	if !strings.Contains(fileContent, key+": "+expectedValue) {
+		t.Fatalf("Generated CR doesn't contain expected %s\n%s", key, fileContent)
 	}
 }
 
 func TestInvalidImageOverrideFormat(t *testing.T) {
-	rootCmd.SetArgs([]string{"generate", "-o", testFile, "-v", "v7.1.0", "--image-de-app", "foo:bar:foo"})
+	rootCmd.SetArgs([]string{"generate", "-v", "v7.1.0", "--image-de-app", "foo:bar:foo"})
 
 	err := rootCmd.Execute()
 

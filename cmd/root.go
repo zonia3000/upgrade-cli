@@ -90,19 +90,6 @@ func ParseEntandoAppFromCmd(cmd *cobra.Command) (*v1alpha1.EntandoAppV2, error) 
 		return nil, err
 	}
 
-	installationType, _ := cmd.Flags().GetString(installationTypeFlag)
-
-	olmFlag, _ := cmd.Flags().GetString(olmFlag)
-	olm, err := isOlm(olmFlag)
-	if err != nil {
-		return nil, err
-	}
-
-	err = service.AdaptImagesOverride(&entandoApp, flag.InstallationType(installationType), olm)
-	if err != nil {
-		return nil, err
-	}
-
 	return &entandoApp, nil
 }
 
