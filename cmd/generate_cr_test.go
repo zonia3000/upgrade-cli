@@ -4,11 +4,14 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"upgrade-cli/service"
 )
 
 const testFile = "generate-cr-test.yml"
 
 func TestSimpleCRGenerated(t *testing.T) {
+
+	os.Setenv(service.EntandoAppNameEnv, "my-entando-app")
 
 	defer os.Remove(testFile)
 

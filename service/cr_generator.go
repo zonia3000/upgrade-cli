@@ -10,16 +10,23 @@ import (
 )
 
 const (
-	defaultAppName = "my-app"
-	apiVersion     = "app.entando.org/v1alpha1"
-	kind           = "EntandoAppV2"
+	defaultResourceName = "my-app"
+	apiVersion          = "app.entando.org/v1alpha1"
+	kind                = "EntandoAppV2"
+	EntandoAppNameEnv   = "ENTANDO_APPNAME"
 )
 
 func GenerateCustomResource(fileName string, entandoAppV2 *v1alpha1.EntandoAppV2) error {
 
 	entandoAppV2.APIVersion = apiVersion
 	entandoAppV2.Kind = kind
-	entandoAppV2.Name = defaultAppName
+	entandoAppV2.Name = defaultResourceName
+
+	entandoAppName := os.Getenv(EntandoAppNameEnv)
+	if entandoAppName == "" {
+		return fmt.Errorf("the environment variable %s must be set", EntandoAppNameEnv)
+	}
+	entandoAppV2.Spec.EntandoAppName = entandoAppName
 
 	yamlPrinter := printers.YAMLPrinter{}
 

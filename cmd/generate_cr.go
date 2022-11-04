@@ -29,9 +29,7 @@ var generateCRCmd = &cobra.Command{
 		}
 
 		fileName, _ := cmd.Flags().GetString(outputFlag)
-		service.GenerateCustomResource(fileName, entandoApp)
-
-		return nil
+		return service.GenerateCustomResource(fileName, entandoApp)
 	},
 }
 
