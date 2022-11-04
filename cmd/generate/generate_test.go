@@ -1,4 +1,4 @@
-package cmd
+package generate
 
 import (
 	"errors"
@@ -17,9 +17,9 @@ func TestGenerateSimpleCR(t *testing.T) {
 	testFile, _ := os.CreateTemp("", "generate-cr-test")
 	defer os.Remove(testFile.Name())
 
-	rootCmd.SetArgs([]string{"generate", "-o", testFile.Name(), "-v", "7.1.0", "--operator-mode", "Plain"})
+	GenerateCRCmd.SetArgs([]string{"generate", "-o", testFile.Name(), "-v", "7.1.0", "--operator-mode", "Plain"})
 
-	err := rootCmd.Execute()
+	err := GenerateCRCmd.Execute()
 
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -56,10 +56,10 @@ func TestGenerateOlmCRWithPlaceholders(t *testing.T) {
 		}
 	}
 
-	rootCmd.SetArgs([]string{"generate", "-o", testFile.Name(), "-v", "v7.1.0", "--operator-mode", "OLM",
+	GenerateCRCmd.SetArgs([]string{"generate", "-o", testFile.Name(), "-v", "v7.1.0", "--operator-mode", "OLM",
 		"--image-de-app", "7.1.0-fix1", "--image-app-builder", "invalid-tag"})
 
-	err := rootCmd.Execute()
+	err := GenerateCRCmd.Execute()
 
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -87,9 +87,9 @@ func assertYamlField(t *testing.T, fileContent, key, expectedValue string) {
 }
 
 func TestInvalidImageOverrideFormat(t *testing.T) {
-	rootCmd.SetArgs([]string{"generate", "-v", "v7.1.0", "--image-de-app", "foo:bar:foo"})
+	GenerateCRCmd.SetArgs([]string{"generate", "-v", "v7.1.0", "--image-de-app", "foo:bar:foo"})
 
-	err := rootCmd.Execute()
+	err := GenerateCRCmd.Execute()
 
 	expectedErrorMessage := "invalid format for image override flag 'foo:bar:foo'. It should be <image>:<tag> or <tag>"
 

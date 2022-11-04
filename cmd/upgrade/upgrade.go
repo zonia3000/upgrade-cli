@@ -1,10 +1,12 @@
-package cmd
+package upgrade
 
 import (
 	"fmt"
 	"os"
 	"path"
 	"time"
+	"upgrade-cli/cmd/generate"
+	"upgrade-cli/flag/component"
 	imagesettype "upgrade-cli/flag/image_set_type"
 	"upgrade-cli/service"
 
@@ -21,22 +23,22 @@ const (
 	Succeeded = "Succeeded"
 )
 
-var upgradeCmd = &cobra.Command{
+var UpgradeCmd = &cobra.Command{
 	Use:   "upgrade",
 	Short: "Apply EntandoAppV2 CR file",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		file, _ := cmd.Flags().GetString(fileFlag)
 		if file == "" {
-			generateCRCmd.PreRun(cmd, args)
+			generate.GenerateCRCmd.PreRun(cmd, args)
 		}
 		// If file flag is set, flags related to generation should not be set
-		for componentFlag := range componentFlags {
-			cmd.MarkFlagsMutuallyExclusive(fileFlag, componentFlag)
+		for _, componentFlag := range component.ComponentFlags {
+			cmd.MarkFlagsMutuallyExclusive(fileFlag, componentFlag.Flag)
 		}
-		cmd.MarkFlagsMutuallyExclusive(fileFlag, versionFlag)
-		cmd.MarkFlagsMutuallyExclusive(fileFlag, latestFlag)
-		cmd.MarkFlagsMutuallyExclusive(fileFlag, operatorModeFlag)
-		cmd.MarkFlagsMutuallyExclusive(fileFlag, imageSetTypeFlag)
+		cmd.MarkFlagsMutuallyExclusive(fileFlag, generate.VersionFlag)
+		cmd.MarkFlagsMutuallyExclusive(fileFlag, generate.LatestVersionFlag)
+		cmd.MarkFlagsMutuallyExclusive(fileFlag, generate.OperatorModeFlag)
+		cmd.MarkFlagsMutuallyExclusive(fileFlag, generate.ImageSetTypeFlag)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Prevent showing usage message when error happens in RunE func
@@ -54,15 +56,15 @@ var upgradeCmd = &cobra.Command{
 			fileName = file.Name()
 			defer os.Remove(fileName)
 
-			entandoApp, err := ParseEntandoAppFromCmd(cmd)
+			entandoApp, err := generate.ParseEntandoAppFromCmd(cmd)
 			if err != nil {
 				return err
 			}
 
-			imageSetType, _ := cmd.Flags().GetString(imageSetTypeFlag)
+			imageSetType, _ := cmd.Flags().GetString(generate.ImageSetTypeFlag)
 
-			operatorMode, _ := cmd.Flags().GetString(operatorModeFlag)
-			olm, err := isOlm(operatorMode)
+			operatorMode, _ := cmd.Flags().GetString(generate.OperatorModeFlag)
+			olm, err := generate.IsOlm(operatorMode)
 			if err != nil {
 				return err
 			}
@@ -153,8 +155,7 @@ func parseStatus(entandoApp *v1alpha1.EntandoAppV2) (*v1alpha1.EntandoAppV2Statu
 }
 
 func init() {
-	rootCmd.AddCommand(upgradeCmd)
-
-	upgradeCmd.Flags().Bool(forceFlag, false, "if set, the changes to the CR are applied even if the resource already exists")
-	upgradeCmd.Flags().StringP(fileFlag, "f", "", "path to CR file")
+	generate.AddCRFlags(UpgradeCmd)
+	UpgradeCmd.Flags().Bool(forceFlag, false, "if set, the changes to the CR are applied even if the resource already exists")
+	UpgradeCmd.Flags().StringP(fileFlag, "f", "", "path to CR file")
 }

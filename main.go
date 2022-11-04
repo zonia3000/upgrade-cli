@@ -1,7 +1,7 @@
 package main
 
-import "upgrade-cli/cmd"
+import "upgrade-cli/cmd/root"
 
 func main() {
-	cmd.Execute()
+	root.Execute()
 }
