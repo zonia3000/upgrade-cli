@@ -19,6 +19,8 @@ const (
 	operatorDeploymentType = "ENTANDO_K8S_OPERATOR_DEPLOYMENT_TYPE"
 )
 
+// CreateEntandoApp sends the CR creation request to the cluster.
+// If force is set to true an existing resource will be overwritten
 func CreateEntandoApp(fileName string, force bool) error {
 
 	if _, err := os.Stat(fileName); errors.Is(err, os.ErrNotExist) {
@@ -60,6 +62,7 @@ func CreateEntandoApp(fileName string, force bool) error {
 	return err
 }
 
+// GetEntandoApp retrieves the EntandoAppV2 resource from the cluster
 func GetEntandoApp() (*v1alpha1.EntandoAppV2, error) {
 	baseCmd, args, err := getKubectlBaseCommand()
 	if err != nil {
@@ -81,9 +84,32 @@ func GetEntandoApp() (*v1alpha1.EntandoAppV2, error) {
 		return nil, err
 	}
 
-	return parseResource(output.Stdout)
+	return parseEntandoAppV2(output.Stdout)
 }
 
+func parseEntandoAppV2(stdout string) (*v1alpha1.EntandoAppV2, error) {
+
+	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
+
+	// Decode the YAML to an object
+	entandoApps := v1alpha1.EntandoAppV2List{}
+	_, _, err := s.Decode([]byte(stdout), nil, &entandoApps)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(entandoApps.Items) == 0 {
+		return nil, fmt.Errorf("resource of type %s not found", entandoAppResourceName)
+	}
+	if len(entandoApps.Items) > 1 {
+		return nil, fmt.Errorf("found multiple resources of type %s", entandoAppResourceName)
+	}
+
+	return &entandoApps.Items[0], nil
+}
+
+// GetOperatorMode retrieves the OperatorMode from the cluster
+// It reads the related environment variable inside entando-operator deployment spec
 func GetOperatorMode() (operatormode.OperatorMode, error) {
 	baseCmd, args, err := getKubectlBaseCommand()
 	if err != nil {
@@ -118,27 +144,8 @@ func GetOperatorMode() (operatormode.OperatorMode, error) {
 	}
 }
 
-func parseResource(stdout string) (*v1alpha1.EntandoAppV2, error) {
-
-	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
-
-	// Decode the YAML to an object
-	entandoApps := v1alpha1.EntandoAppV2List{}
-	_, _, err := s.Decode([]byte(stdout), nil, &entandoApps)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(entandoApps.Items) == 0 {
-		return nil, fmt.Errorf("resource of type %s not found", entandoAppResourceName)
-	}
-	if len(entandoApps.Items) > 1 {
-		return nil, fmt.Errorf("found multiple resources of type %s", entandoAppResourceName)
-	}
-
-	return &entandoApps.Items[0], nil
-}
-
+// getKubectlBaseCommand returns the base kubectl command parsed from the related environment variable
+// and converted in the format required by the spawn.Spawn function
 func getKubectlBaseCommand() (*string, []interface{}, error) {
 
 	kubectlBaseCmd := os.Getenv(kubectlBaseCommandEnv)
