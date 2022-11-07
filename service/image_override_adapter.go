@@ -48,8 +48,8 @@ func AdaptImagesOverride(entandoAppV2 *v1alpha1.EntandoAppV2, olm bool) bool {
 	adaptImageOverride(&entandoAppV2.Spec.K8sPluginController.ImageOverride, defaultK8sPluginControllerImage, olm, digestErrors)
 	adaptImageOverride(&entandoAppV2.Spec.K8sAppPluginLinkController.ImageOverride, defaultK8sAppPluginLinkControllerImage, olm, digestErrors)
 
-	checkInstallationTypeImagesMismatch(entandoAppV2.Spec.DeApp.ImageOverride, defaultDeAppImage, imageSetType)
-	checkInstallationTypeImagesMismatch(entandoAppV2.Spec.Keycloak.ImageOverride, defaultKeycloakImage, imageSetType)
+	checkImageSetTypeMismatch(entandoAppV2.Spec.DeApp.ImageOverride, defaultDeAppImage, imageSetType)
+	checkImageSetTypeMismatch(entandoAppV2.Spec.Keycloak.ImageOverride, defaultKeycloakImage, imageSetType)
 
 	return checkDigestErrors(digestErrors)
 }
@@ -123,11 +123,12 @@ func checkDigestErrors(digestErrors map[string]error) bool {
 }
 
 // in case of inconsistencies between the provided images and the selected installation type the user is warned
-func checkInstallationTypeImagesMismatch(image, expectedRepo string, imageSetType imagesettype.ImageSetType) {
+func checkImageSetTypeMismatch(image, expectedRepo string, imageSetType imagesettype.ImageSetType) {
 
 	// the check is performed only when using official Entando images
 	if strings.HasPrefix(image, defaultRegistry+"/"+defaultOrganization+"/") {
-		re := regexp.MustCompile(`^.+/(.+):.+$`)
+		// extract repo name from image full URL
+		re := regexp.MustCompile(`^.+/([^@:]+)(?:@sha256)?:.+$`)
 		matches := re.FindStringSubmatch(image)
 		if len(matches) == 2 {
 			providedRepo := matches[1]

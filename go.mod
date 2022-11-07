@@ -7,6 +7,7 @@ require (
 	github.com/google/go-containerregistry v0.12.0
 	github.com/schollz/progressbar/v3 v3.11.0
 	github.com/spf13/cobra v1.6.1
+	github.com/zenizh/go-capturer v0.0.0-20211219060012-52ea6c8fed04
 	k8s.io/apimachinery v0.25.3
 	k8s.io/cli-runtime v0.25.3
 	k8s.io/client-go v0.25.3
