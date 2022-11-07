@@ -14,14 +14,17 @@ import (
 var CraneDigest = crane.Digest
 
 const (
-	defaultRegistry              = "registry.hub.docker.com"
-	defaultOrganization          = "entando"
-	defaultAppBuilderImage       = "app-builder"
-	defaultDeAppEapImage         = "entando-de-app-eap"
-	defaultDeAppWildflyImage     = "entando-de-app-wildfly"
-	defaultComponentManagerImage = "entando-component-manager"
-	defaultKeycloakImage         = "entando-keycloak"
-	defaultRedHatSsoImage        = "entando-redhat-sso"
+	defaultRegistry                        = "registry.hub.docker.com"
+	defaultOrganization                    = "entando"
+	defaultAppBuilderImage                 = "app-builder"
+	defaultDeAppEapImage                   = "entando-de-app-eap"
+	defaultDeAppWildflyImage               = "entando-de-app-wildfly"
+	defaultComponentManagerImage           = "entando-component-manager"
+	defaultKeycloakImage                   = "entando-keycloak"
+	defaultRedHatSsoImage                  = "entando-redhat-sso"
+	defaultK8sServiceImage                 = "entando-k8s-service"
+	defaultK8sPluginControllerImage        = "entando-k8s-plugin-controller"
+	defaultK8sAppPluginLinkControllerImage = "entando-k8s-app-plugin-link-controller"
 
 	missingDigestPlaceholder = "###-FIXME-INSERT-SHA256-###"
 )
@@ -41,6 +44,9 @@ func AdaptImagesOverride(entandoAppV2 *v1alpha1.EntandoAppV2, olm bool) bool {
 	adaptImageOverride(&entandoAppV2.Spec.DeApp.ImageOverride, defaultDeAppImage, olm, digestErrors)
 	adaptImageOverride(&entandoAppV2.Spec.ComponentManager.ImageOverride, defaultComponentManagerImage, olm, digestErrors)
 	adaptImageOverride(&entandoAppV2.Spec.Keycloak.ImageOverride, defaultKeycloakImage, olm, digestErrors)
+	adaptImageOverride(&entandoAppV2.Spec.K8sService.ImageOverride, defaultK8sServiceImage, olm, digestErrors)
+	adaptImageOverride(&entandoAppV2.Spec.K8sPluginController.ImageOverride, defaultK8sPluginControllerImage, olm, digestErrors)
+	adaptImageOverride(&entandoAppV2.Spec.K8sAppPluginLinkController.ImageOverride, defaultK8sAppPluginLinkControllerImage, olm, digestErrors)
 
 	checkInstallationTypeImagesMismatch(entandoAppV2.Spec.DeApp.ImageOverride, defaultDeAppImage, imageSetType)
 	checkInstallationTypeImagesMismatch(entandoAppV2.Spec.Keycloak.ImageOverride, defaultKeycloakImage, imageSetType)
