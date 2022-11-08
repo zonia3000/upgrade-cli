@@ -13,6 +13,7 @@ import (
 func TestGenerateSimpleCR(t *testing.T) {
 
 	os.Setenv(service.EntandoAppNameEnv, "my-entando-app")
+	os.Setenv(service.EntandoIngressHostNameEnv, "quickstart.10.11.91.88.nip.io")
 
 	testFile, _ := os.CreateTemp("", "generate-cr-test")
 	defer os.Remove(testFile.Name())
@@ -36,11 +37,13 @@ func TestGenerateSimpleCR(t *testing.T) {
 	assertYamlField(t, fileContent, "kind", "EntandoAppV2")
 	assertYamlField(t, fileContent, "version", "7.1.0")
 	assertYamlField(t, fileContent, "entandoAppName", "my-entando-app")
+	assertYamlField(t, fileContent, "ingressHostName", "quickstart.10.11.91.88.nip.io")
 }
 
 func TestGenerateOlmCRWithPlaceholders(t *testing.T) {
 
 	os.Setenv(service.EntandoAppNameEnv, "my-entando-app")
+	os.Setenv(service.EntandoIngressHostNameEnv, "quickstart.10.11.91.88.nip.io")
 
 	testFile, _ := os.CreateTemp("", "generate-cr-test")
 	defer os.Remove(testFile.Name())
