@@ -3,9 +3,9 @@ package service
 import (
 	"fmt"
 	"os"
-	"regexp"
 	"strings"
 	imagesettype "upgrade-cli/flag/image_set_type"
+	"upgrade-cli/util/images"
 
 	"github.com/entgigi/upgrade-operator.git/api/v1alpha1"
 	"github.com/google/go-containerregistry/pkg/crane"
@@ -14,86 +14,49 @@ import (
 var CraneDigest = crane.Digest
 
 const (
-	defaultRegistry                        = "registry.hub.docker.com"
-	defaultOrganization                    = "entando"
-	defaultAppBuilderImage                 = "app-builder"
-	defaultDeAppEapImage                   = "entando-de-app-eap"
-	defaultDeAppWildflyImage               = "entando-de-app-wildfly"
-	defaultComponentManagerImage           = "entando-component-manager"
-	defaultKeycloakImage                   = "entando-keycloak"
-	defaultRedHatSsoImage                  = "entando-redhat-sso"
-	defaultK8sServiceImage                 = "entando-k8s-service"
-	defaultK8sPluginControllerImage        = "entando-k8s-plugin-controller"
-	defaultK8sAppPluginLinkControllerImage = "entando-k8s-app-plugin-link-controller"
-
-	missingDigestPlaceholder = "###-FIXME-INSERT-SHA256-###"
+	missingDigestPlaceholder = "ERROR: <unable to fetch digest of: %s>"
 )
 
 // AdaptImagesOverride converts the format of the images provided by the user to full URL format
-// Returns a bool that is true in case of errors in digests retrieval. This will be used to add a comment on the YAML file
+// Returns a bool that is true in case of errors in digests retrieval.
 func AdaptImagesOverride(entandoAppV2 *v1alpha1.EntandoAppV2, olm bool) bool {
 
 	imageSetType := imagesettype.ImageSetType(entandoAppV2.Spec.ImageSetType)
 
-	defaultDeAppImage := getDefaultDeAppImage(imageSetType)
-	defaultKeycloakImage := getDefaultKeycloakImage(imageSetType)
-
 	digestErrors := make(map[string]error)
 
-	adaptImageOverride(&entandoAppV2.Spec.AppBuilder.ImageOverride, defaultAppBuilderImage, olm, digestErrors)
-	adaptImageOverride(&entandoAppV2.Spec.DeApp.ImageOverride, defaultDeAppImage, olm, digestErrors)
-	adaptImageOverride(&entandoAppV2.Spec.ComponentManager.ImageOverride, defaultComponentManagerImage, olm, digestErrors)
-	adaptImageOverride(&entandoAppV2.Spec.Keycloak.ImageOverride, defaultKeycloakImage, olm, digestErrors)
-	adaptImageOverride(&entandoAppV2.Spec.K8sService.ImageOverride, defaultK8sServiceImage, olm, digestErrors)
-	adaptImageOverride(&entandoAppV2.Spec.K8sPluginController.ImageOverride, defaultK8sPluginControllerImage, olm, digestErrors)
-	adaptImageOverride(&entandoAppV2.Spec.K8sAppPluginLinkController.ImageOverride, defaultK8sAppPluginLinkControllerImage, olm, digestErrors)
-
-	checkImageSetTypeMismatch(entandoAppV2.Spec.DeApp.ImageOverride, defaultDeAppImage, imageSetType)
-	checkImageSetTypeMismatch(entandoAppV2.Spec.Keycloak.ImageOverride, defaultKeycloakImage, imageSetType)
+	for _, imageInfo := range images.EntandoImages {
+		adaptImageOverride(entandoAppV2, imageInfo, imageSetType, olm, digestErrors)
+	}
 
 	return checkDigestErrors(digestErrors)
 }
 
-func getDefaultDeAppImage(imageSetType imagesettype.ImageSetType) string {
-	if imageSetType == imagesettype.RedhatCertified {
-		return defaultDeAppEapImage
-	}
-	return defaultDeAppWildflyImage
-}
+func adaptImageOverride(entandoAppV2 *v1alpha1.EntandoAppV2, imageInfo images.EntandoImageInfo, imageSetType imagesettype.ImageSetType, olm bool, digestErrors map[string]error) {
+	imageOverride := imageInfo.GetImageOverride(entandoAppV2)
 
-func getDefaultKeycloakImage(imageSetType imagesettype.ImageSetType) string {
-	if imageSetType == imagesettype.RedhatCertified {
-		return defaultRedHatSsoImage
-	}
-	return defaultKeycloakImage
-}
-
-func adaptImageOverride(imageOverride *string, defaultImage string, olm bool, digestErrors map[string]error) {
-	if *imageOverride != "" {
+	if imageOverride != nil && *imageOverride != "" {
 		if !strings.Contains(*imageOverride, ":") && !strings.Contains(*imageOverride, "/") {
 			// only the tag was provided
-			*imageOverride = fmt.Sprintf("%s/%s/%s:%s", defaultRegistry, defaultOrganization, defaultImage, *imageOverride)
-		} else if !containsRegistry(*imageOverride) {
-			*imageOverride = fmt.Sprintf("%s/%s", defaultRegistry, *imageOverride)
+			defaultImage := imageInfo.GetDefaultImage(imageSetType)
+			*imageOverride = fmt.Sprintf("%s:%s", defaultImage, *imageOverride)
+		} else if !images.ContainsRegistry(*imageOverride) {
+			*imageOverride = fmt.Sprintf("%s/%s", images.DefaultRegistry, *imageOverride)
 		}
 
+		checkImageSetTypeMismatch(*imageOverride, imageInfo, imageSetType)
+
 		if olm {
-			image, err := replaceTagsWithDigests(imageOverride)
+			err := replaceTagsWithDigests(imageOverride)
 			if err != nil {
-				digestErrors[image] = err
+				digestErrors[imageInfo.ImageOverrideFlag] = err
 			}
 		}
 	}
 }
 
-func containsRegistry(image string) bool {
-	re := regexp.MustCompile(`^[\w-\.]+\.[\w-\.]+\/[\w-\/@\.:]+$`)
-	return re.MatchString(image)
-}
-
 // replaceTagsWithDigests replaces image tags with digests. This is needed for OLM installations.
-// In case of error returns the provided image and the error
-func replaceTagsWithDigests(imageOverride *string) (string, error) {
+func replaceTagsWithDigests(imageOverride *string) error {
 	if !strings.Contains(*imageOverride, "@sha256:") {
 		prefix := strings.Split(*imageOverride, ":")[0]
 
@@ -101,13 +64,13 @@ func replaceTagsWithDigests(imageOverride *string) (string, error) {
 		digest, err := CraneDigest(providedValue)
 		if err != nil {
 			// set placeholder
-			*imageOverride = prefix + "@" + missingDigestPlaceholder
-			return providedValue, err
+			*imageOverride = fmt.Sprintf(missingDigestPlaceholder, providedValue)
+			return err
 		}
 
 		*imageOverride = prefix + "@" + digest
 	}
-	return *imageOverride, nil
+	return nil
 }
 
 func checkDigestErrors(digestErrors map[string]error) bool {
@@ -123,15 +86,13 @@ func checkDigestErrors(digestErrors map[string]error) bool {
 }
 
 // in case of inconsistencies between the provided images and the selected installation type the user is warned
-func checkImageSetTypeMismatch(image, expectedRepo string, imageSetType imagesettype.ImageSetType) {
+func checkImageSetTypeMismatch(image string, imageInfo images.EntandoImageInfo, imageSetType imagesettype.ImageSetType) {
 
 	// the check is performed only when using official Entando images
-	if strings.HasPrefix(image, defaultRegistry+"/"+defaultOrganization+"/") {
-		// extract repo name from image full URL
-		re := regexp.MustCompile(`^.+/([^@:]+)(?:@sha256)?:.+$`)
-		matches := re.FindStringSubmatch(image)
-		if len(matches) == 2 {
-			providedRepo := matches[1]
+	if images.IsOfficialImage(image) && imageInfo.IsMultiImage {
+		providedRepo := images.ExtractRepo(image)
+		if providedRepo != "" {
+			expectedRepo := images.ExtractRepo(imageInfo.GetDefaultImage(imageSetType))
 			if providedRepo != expectedRepo {
 				fmt.Fprintf(os.Stderr, "WARNING: image-set-type is set to %s but the repository %s was provided. Expected repository should be %s\n", imageSetType, providedRepo, expectedRepo)
 			}

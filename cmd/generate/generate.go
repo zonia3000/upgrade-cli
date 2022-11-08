@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"upgrade-cli/flag/component"
 	imagesettype "upgrade-cli/flag/image_set_type"
 	operatormode "upgrade-cli/flag/operator_mode"
 	"upgrade-cli/service"
+	"upgrade-cli/util/images"
 
 	"github.com/entgigi/upgrade-operator.git/api/v1alpha1"
 	"github.com/spf13/cobra"
@@ -75,8 +75,8 @@ func ParseEntandoAppFromCmd(cmd *cobra.Command) (*v1alpha1.EntandoAppV2, bool, e
 	entandoApp.Spec.Version = version
 	entandoApp.Spec.ImageSetType = string(imageSetType)
 
-	for _, componentFlag := range component.ComponentFlags {
-		err := parseComponentFlag(cmd, componentFlag, &entandoApp)
+	for _, imageInfo := range images.EntandoImages {
+		err := parseComponentFlag(cmd, imageInfo, &entandoApp)
 		if err != nil {
 			return nil, false, err
 		}
@@ -109,8 +109,8 @@ func getImageSetType(cmd *cobra.Command, olm bool) imagesettype.ImageSetType {
 	return imagesettype.ImageSetType(flagValue)
 }
 
-func parseComponentFlag(cmd *cobra.Command, componentFlag component.ComponentFlag, entandoApp *v1alpha1.EntandoAppV2) error {
-	componentImage, _ := cmd.Flags().GetString(componentFlag.Flag)
+func parseComponentFlag(cmd *cobra.Command, imageInfo images.EntandoImageInfo, entandoApp *v1alpha1.EntandoAppV2) error {
+	componentImage, _ := cmd.Flags().GetString(imageInfo.ImageOverrideFlag)
 
 	if componentImage != "" {
 		re := regexp.MustCompile(`^[\w-\/\.@]*:?[\w-\.]+$`)
@@ -119,7 +119,7 @@ func parseComponentFlag(cmd *cobra.Command, componentFlag component.ComponentFla
 			return fmt.Errorf("invalid format for image override flag '%s'. It should be <image>:<tag> or <tag>", componentImage)
 		}
 
-		imageOverride := componentFlag.ImageOverrideGetter(entandoApp)
+		imageOverride := imageInfo.GetImageOverride(entandoApp)
 		*imageOverride = componentImage
 	}
 
@@ -140,7 +140,7 @@ func AddCRFlags(cmd *cobra.Command) {
 	operatorModeFlagUsage := "Generate CR for an OLM or plain installation. Possible values: " + strings.Join(operatormode.GetOperatorModeValues(), ", ")
 	cmd.PersistentFlags().VarP(operatorModeFlagValue, OperatorModeFlag, "m", operatorModeFlagUsage)
 
-	for _, componentFlag := range component.ComponentFlags {
-		cmd.PersistentFlags().String(componentFlag.Flag, "", "Image override for "+componentFlag.ComponentName)
+	for _, imageInfo := range images.EntandoImages {
+		cmd.PersistentFlags().String(imageInfo.ImageOverrideFlag, "", "Image override for "+imageInfo.ComponentName)
 	}
 }

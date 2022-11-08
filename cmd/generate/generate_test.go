@@ -72,12 +72,12 @@ func TestGenerateOlmCRWithPlaceholders(t *testing.T) {
 
 	fileContent := string(bytes)
 
-	if !strings.Contains(fileContent, "Please replace the placeholders") {
+	wrongImageResult := "imageOverride: ERROR: <unable to fetch digest of: registry.hub.docker.com/entando/app-builder:invalid-tag> # FIXME"
+	if !strings.Contains(fileContent, wrongImageResult) {
 		t.Fatalf("Generated doesn't contain placeholders warning")
 	}
 
 	assertYamlField(t, fileContent, "imageOverride", "registry.hub.docker.com/entando/entando-de-app-eap@sha256:94af0fb4525")
-	assertYamlField(t, fileContent, "imageOverride", "registry.hub.docker.com/entando/app-builder@###-FIXME-INSERT-SHA256-###")
 }
 
 func assertYamlField(t *testing.T, fileContent, key, expectedValue string) {

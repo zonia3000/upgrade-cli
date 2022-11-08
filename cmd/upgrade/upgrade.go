@@ -6,8 +6,8 @@ import (
 	"path"
 	"time"
 	"upgrade-cli/cmd/generate"
-	"upgrade-cli/flag/component"
 	"upgrade-cli/service"
+	"upgrade-cli/util/images"
 
 	"github.com/entgigi/upgrade-operator.git/api/v1alpha1"
 	"github.com/schollz/progressbar/v3"
@@ -31,8 +31,8 @@ var UpgradeCmd = &cobra.Command{
 			generate.GenerateCRCmd.PreRun(cmd, args)
 		}
 		// If file flag is set, flags related to generation should not be set
-		for _, componentFlag := range component.ComponentFlags {
-			cmd.MarkFlagsMutuallyExclusive(fileFlag, componentFlag.Flag)
+		for _, imageInfo := range images.EntandoImages {
+			cmd.MarkFlagsMutuallyExclusive(fileFlag, imageInfo.ImageOverrideFlag)
 		}
 		cmd.MarkFlagsMutuallyExclusive(fileFlag, generate.VersionFlag)
 		cmd.MarkFlagsMutuallyExclusive(fileFlag, generate.LatestVersionFlag)

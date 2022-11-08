@@ -1,9 +1,12 @@
 package service
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
+	"regexp"
+	"upgrade-cli/common"
 
 	"github.com/entgigi/upgrade-operator.git/api/v1alpha1"
 	"k8s.io/cli-runtime/pkg/printers"
@@ -12,7 +15,6 @@ import (
 const (
 	defaultResourceName = "my-app"
 	apiVersion          = "app.entando.org/v1alpha1"
-	kind                = "EntandoAppV2"
 	EntandoAppNameEnv   = "ENTANDO_CLI_APPNAME"
 )
 
@@ -22,7 +24,7 @@ const (
 func GenerateCustomResource(fileName string, entandoAppV2 *v1alpha1.EntandoAppV2, needsFix bool) error {
 
 	entandoAppV2.APIVersion = apiVersion
-	entandoAppV2.Kind = kind
+	entandoAppV2.Kind = common.EntandoAppResourceName
 	entandoAppV2.Name = defaultResourceName
 
 	entandoAppName := os.Getenv(EntandoAppNameEnv)
@@ -45,23 +47,26 @@ func GenerateCustomResource(fileName string, entandoAppV2 *v1alpha1.EntandoAppV2
 		writer = file
 	}
 
-	if needsFix {
-		printFixme(writer)
-	}
+	writer.Write([]byte("---\n"))
 
-	err := yamlPrinter.PrintObj(entandoAppV2, writer)
+	var buffer bytes.Buffer
+	err := yamlPrinter.PrintObj(entandoAppV2, &buffer)
+
 	if err != nil {
 		return fmt.Errorf("unable to generate EntandoAppV2 manifest. %s", err.Error())
+	}
+
+	if needsFix {
+		writer.Write(breakSyntax(buffer.Bytes()))
+	} else {
+		writer.Write(buffer.Bytes())
 	}
 
 	return nil
 }
 
-func printFixme(writer io.Writer) {
-	// adding the '<' char to break the syntax
-	writer.Write([]byte("< ######################################## >\n"))
-	writer.Write([]byte("< #                FIXME                 # >\n"))
-	writer.Write([]byte("< #   Please replace the placeholders    # >\n"))
-	writer.Write([]byte("< # Remember also to remove this comment # >\n"))
-	writer.Write([]byte("< ######################################## >\n\n"))
+func breakSyntax(bytes []byte) []byte {
+	stringValue := string(bytes)
+	errorRegexp := regexp.MustCompile(`("|')(ERROR: .*)("|')`)
+	return []byte(errorRegexp.ReplaceAllString(stringValue, "$2 # FIXME"))
 }

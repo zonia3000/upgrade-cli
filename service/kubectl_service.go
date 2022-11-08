@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"upgrade-cli/common"
 	operatormode "upgrade-cli/flag/operator_mode"
 	"upgrade-cli/util/sys/spawn"
 
@@ -15,7 +16,6 @@ import (
 
 const (
 	kubectlBaseCommandEnv  = "ENTANDO_CLI_KUBECTL_COMMAND"
-	entandoAppResourceName = "EntandoAppV2"
 	operatorDeploymentType = "ENTANDO_K8S_OPERATOR_DEPLOYMENT_TYPE"
 )
 
@@ -69,7 +69,7 @@ func GetEntandoApp() (*v1alpha1.EntandoAppV2, error) {
 		return nil, err
 	}
 
-	args = append(args, "get", entandoAppResourceName, "-o", "yaml")
+	args = append(args, "get", common.EntandoAppResourceName, "-o", "yaml")
 
 	output, err := spawn.Spawn(nil,
 		*baseCmd,
@@ -99,10 +99,10 @@ func parseEntandoAppV2(stdout string) (*v1alpha1.EntandoAppV2, error) {
 	}
 
 	if len(entandoApps.Items) == 0 {
-		return nil, fmt.Errorf("resource of type %s not found", entandoAppResourceName)
+		return nil, fmt.Errorf("resource of type %s not found", common.EntandoAppResourceName)
 	}
 	if len(entandoApps.Items) > 1 {
-		return nil, fmt.Errorf("found multiple resources of type %s", entandoAppResourceName)
+		return nil, fmt.Errorf("found multiple resources of type %s", common.EntandoAppResourceName)
 	}
 
 	return &entandoApps.Items[0], nil

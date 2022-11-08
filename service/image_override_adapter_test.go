@@ -83,7 +83,7 @@ func TestAdaptImagesOverrideOnlyTags(t *testing.T) {
 	expectedKeycloak := "registry.hub.docker.com/entando/entando-redhat-sso:7.1.1-ENGPM-493-PR-440"
 
 	if deApp := entandoAppV2.Spec.DeApp.ImageOverride; deApp != expectedDeApp {
-		t.Fatalf("expected %s, found to %s", expectedDeApp, deApp)
+		t.Fatalf("expected %s, found %s", expectedDeApp, deApp)
 	}
 	if keycloak := entandoAppV2.Spec.Keycloak.ImageOverride; keycloak != expectedKeycloak {
 		t.Fatalf("expected %s, found %s", expectedKeycloak, keycloak)
@@ -99,7 +99,7 @@ func TestAdaptImagesOverrideOnlyTags(t *testing.T) {
 	expectedKeycloak = "registry.hub.docker.com/entando/entando-keycloak:7.1.1-ENGPM-493-PR-440"
 
 	if deApp := entandoAppV2.Spec.DeApp.ImageOverride; deApp != expectedDeApp {
-		t.Fatalf("expected %s, found to %s", expectedDeApp, deApp)
+		t.Fatalf("expected %s, found %s", expectedDeApp, deApp)
 	}
 	if keycloak := entandoAppV2.Spec.Keycloak.ImageOverride; keycloak != expectedKeycloak {
 		t.Fatalf("expected %s, found %s", expectedKeycloak, keycloak)
