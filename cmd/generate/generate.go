@@ -2,7 +2,6 @@ package generate
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 	imagesettype "upgrade-cli/flag/image_set_type"
 	operatormode "upgrade-cli/flag/operator_mode"
@@ -110,17 +109,15 @@ func getImageSetType(cmd *cobra.Command, olm bool) imagesettype.ImageSetType {
 }
 
 func parseComponentFlag(cmd *cobra.Command, imageInfo images.EntandoImageInfo, entandoApp *v1alpha1.EntandoAppV2) error {
-	componentImage, _ := cmd.Flags().GetString(imageInfo.ImageOverrideFlag)
+	parsedImageOverride, _ := cmd.Flags().GetString(imageInfo.ImageOverrideFlag)
 
-	if componentImage != "" {
-		re := regexp.MustCompile(`^[\w-\/\.@]*:?[\w-\.]+$`)
-
-		if !re.MatchString(componentImage) {
-			return fmt.Errorf("invalid format for image override flag '%s'. It should be <image>:<tag> or <tag>", componentImage)
+	if parsedImageOverride != "" {
+		if !images.IsValidImageOverride(parsedImageOverride) {
+			return fmt.Errorf("invalid format for image override flag '%s'. It should be <image>:<tag> or <tag>", parsedImageOverride)
 		}
 
 		imageOverride := imageInfo.GetImageOverride(entandoApp)
-		*imageOverride = componentImage
+		*imageOverride = parsedImageOverride
 	}
 
 	return nil

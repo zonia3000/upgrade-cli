@@ -41,3 +41,20 @@ func TestContainsRegistry(t *testing.T) {
 		t.Fatalf("ContainsRegistry returned true for %s", imageWithoutRegistry)
 	}
 }
+
+func TestIsValidImageOverride(t *testing.T) {
+	// Valid
+	checkIsValidImageOverride(t, "7.1.0", true)
+	checkIsValidImageOverride(t, "entando/entando-de-app-wildfly:7.1.0", true)
+	checkIsValidImageOverride(t, "registry.hub.docker.com/entando/entando-de-app-wildfly:7.1.0", true)
+	checkIsValidImageOverride(t, "registry.hub.docker.com/entando/entando-de-app-eap@sha256:94af0fb4525", true)
+	// Invalid
+	checkIsValidImageOverride(t, "entando-de-app-wildfly:7.1.0", false)
+	checkIsValidImageOverride(t, "https://registry.hub.docker.com/r/entando/entando-de-app-wildfly", false)
+}
+
+func checkIsValidImageOverride(t *testing.T, imageOverride string, expected bool) {
+	if IsValidImageOverride(imageOverride) != expected {
+		t.Fatalf("IsValidImageOverride returned %v for %s", !expected, imageOverride)
+	}
+}

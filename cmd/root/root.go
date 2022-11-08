@@ -25,6 +25,7 @@ func Execute() {
 }
 
 func init() {
+	RootCmd.CompletionOptions.DisableDefaultCmd = true
 	RootCmd.AddCommand(generate.GenerateCRCmd)
 	RootCmd.AddCommand(upgrade.UpgradeCmd)
 }

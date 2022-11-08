@@ -143,3 +143,15 @@ func ContainsRegistry(image string) bool {
 	re := regexp.MustCompile(`^[\w-\.]+\.[\w-\.]+\/[\w-\/@\.:]+$`)
 	return re.MatchString(image)
 }
+
+// IsValidImageOverride returns true if the provided value can be used as image override flag
+// Accepted values are:
+// - <tag>
+// - <organization>/<repo>:<tag>
+// - <organization>/<repo>@sha256:<sha>
+// - <registry>/<organization>/<repo>:<tag>
+// - <registry>/<organization>/<repo>@sha256:<sha>
+func IsValidImageOverride(imageOverride string) bool {
+	re := regexp.MustCompile(`^([\w-\.]+\/)?([\w-]+\/[\w-]+(@sha256)?)?:?[\w-\.]+$`)
+	return re.MatchString(imageOverride)
+}
